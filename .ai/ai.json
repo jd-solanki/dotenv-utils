@@ -1,0 +1,10 @@
+{
+  "packages": {
+    "jd-solanki/.ai": {
+      "version": "v1.0.0",
+      "linked": [
+        "skills/grill-me"
+      ]
+    }
+  }
+}
