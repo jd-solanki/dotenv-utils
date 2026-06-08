@@ -1,0 +1,19 @@
+{
+  "name": "envolix",
+  "version": "0.0.0",
+  "description": "Keep Example Environment Files aligned with Source Environment Files without exposing source values.",
+  "type": "module",
+  "license": "MIT",
+  "packageManager": "pnpm@10.19.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "bin": {
+    "envolix": "./src/index.js"
+  },
+  "scripts": {
+    "cli": "node ./src/index.js",
+    "envolix": "node ./src/index.js",
+    "test": "node --test"
+  }
+}
