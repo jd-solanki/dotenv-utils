@@ -1,10 +1,15 @@
 {
   "packages": {
     "jd-solanki/.ai": {
-      "version": "v1.0.1",
+      "version": "v1.0.5",
       "linked": [
         "skills/grill-me",
-        "skills/grill-with-docs"
+        "skills/grill-with-docs",
+        "skills/write-a-skill",
+        "skills/comment-code",
+        "skills/github-labels",
+        "skills/to-issues",
+        "skills/to-prd"
       ]
     }
   }
