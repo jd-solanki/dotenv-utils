@@ -1,7 +1,7 @@
 {
   "packages": {
     "jd-solanki/.ai": {
-      "version": "v1.0.7",
+      "version": "v1.0.12",
       "linked": [
         "skills/grill-me",
         "skills/grill-with-docs",
@@ -9,7 +9,10 @@
         "skills/comment-code",
         "skills/github-labels",
         "skills/to-issues",
-        "skills/to-prd"
+        "skills/to-prd",
+        "skills/automate-commit-based-gh-release-changelog",
+        "skills/automate-npm-release",
+        "skills/node-cli"
       ]
     }
   }
