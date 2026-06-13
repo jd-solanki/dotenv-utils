@@ -1,0 +1,33 @@
+{
+  "name": "envolix",
+  "version": "0.0.0",
+  "private": true,
+  "homepage": "https://github.com/jd-solanki/envolix#readme",
+  "bugs": {
+    "url": "https://github.com/jd-solanki/envolix/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jd-solanki/envolix.git"
+  },
+  "workspaces": [
+    "packages/*"
+  ],
+  "type": "module",
+  "scripts": {
+    "check": "vp check",
+    "ready": "vp check && vp test && vp run -r pack",
+    "release:cli": "cd packages/cli && pnpm dlx bumpp patch --tag \"cli-v%s\" --commit \"chore(cli): release v%s\" --push",
+    "release:env-parser": "cd packages/env-parser && pnpm dlx bumpp patch --tag \"env-parser-v%s\" --commit \"chore(env-parser): release v%s\" --push",
+    "test": "vp test"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "^6.0.3",
+    "vite-plus": "^0.1.24"
+  },
+  "engines": {
+    "node": ">=24 <25"
+  },
+  "packageManager": "pnpm@10.12.1"
+}
