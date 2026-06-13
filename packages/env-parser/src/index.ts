@@ -86,22 +86,26 @@ export function parseEnvDocument(source: string): EnvDocument {
     const lineNumber = index + 1;
 
     if (line.text.trim() === '') {
-      nodes.push({
-        type: 'blank',
-        raw: line.text,
-        lineRange: { start: lineNumber, end: lineNumber },
-      });
+      nodes.push(
+        freezeNode({
+          type: 'blank',
+          raw: line.text,
+          lineRange: { start: lineNumber, end: lineNumber },
+        }),
+      );
       index += 1;
       continue;
     }
 
     if (/^\s*#/.test(line.text)) {
-      nodes.push({
-        type: 'comment',
-        raw: line.text,
-        lineRange: { start: lineNumber, end: lineNumber },
-        comment: parseComment(line.text.slice(line.text.indexOf('#'))),
-      });
+      nodes.push(
+        freezeNode({
+          type: 'comment',
+          raw: line.text,
+          lineRange: { start: lineNumber, end: lineNumber },
+          comment: parseComment(line.text.slice(line.text.indexOf('#'))),
+        }),
+      );
       index += 1;
       continue;
     }
@@ -113,17 +117,19 @@ export function parseEnvDocument(source: string): EnvDocument {
       continue;
     }
 
-    nodes.push({
-      type: 'unknown',
-      raw: line.text,
-      lineRange: { start: lineNumber, end: lineNumber },
-    });
+    nodes.push(
+      freezeNode({
+        type: 'unknown',
+        raw: line.text,
+        lineRange: { start: lineNumber, end: lineNumber },
+      }),
+    );
     index += 1;
   }
 
   const keyIndex = createKeyIndex(nodes);
 
-  return {
+  const document: EnvDocument = {
     type: 'document',
     nodes: Object.freeze(nodes),
     keyIndex,
@@ -136,6 +142,8 @@ export function parseEnvDocument(source: string): EnvDocument {
       return keyIndex[key] ?? emptyEntries;
     },
   };
+
+  return Object.freeze(document);
 }
 
 export const parseEnv = parseEnvDocument;
@@ -202,7 +210,7 @@ function parseEntryAt(lines: readonly PhysicalLine[], startIndex: number): Entry
 
   return {
     consumedLines: 1,
-    entry: {
+    entry: freezeNode({
       type: 'entry',
       raw: firstLine.text,
       lineRange: { start: startIndex + 1, end: startIndex + 1 },
@@ -212,7 +220,7 @@ function parseEntryAt(lines: readonly PhysicalLine[], startIndex: number): Entry
       quoteStyle: 'none',
       exportPrefix,
       inlineComment: commentRaw.startsWith('#') ? parseComment(commentRaw) : undefined,
-    },
+    }),
   };
 }
 
@@ -290,7 +298,7 @@ function parseQuotedEntry(
 
       return {
         consumedLines: currentLineIndex - startIndex + 1,
-        entry: {
+        entry: freezeNode({
           type: 'entry',
           raw,
           lineRange: { start: startIndex + 1, end: currentLineIndex + 1 },
@@ -301,7 +309,7 @@ function parseQuotedEntry(
           exportPrefix: context.exportPrefix,
           inlineComment:
             commentRaw?.startsWith('#') === true ? parseComment(commentRaw) : undefined,
-        },
+        }),
       };
     }
 
@@ -340,10 +348,15 @@ function parseComment(raw: string): EnvComment {
     });
   }
 
-  return {
+  return Object.freeze({
     raw,
     segments: Object.freeze(segments),
-  };
+  });
+}
+
+function freezeNode<TNode extends EnvNode>(node: TNode): TNode {
+  Object.freeze(node.lineRange);
+  return Object.freeze(node);
 }
 
 function createKeyIndex(nodes: readonly EnvNode[]): Readonly<Record<string, readonly EnvEntry[]>> {

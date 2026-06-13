@@ -77,6 +77,10 @@ describe('@envolix/env-parser', () => {
       exportPrefix: 'export ',
       inlineComment: undefined,
     });
+
+    expect(Object.isFrozen(document)).toBe(true);
+    expect(Object.isFrozen(document.nodes)).toBe(true);
+    expect(Object.isFrozen(document.nodes[0])).toBe(true);
   });
 
   it('parses single-quoted and double-quoted multiline values', () => {
@@ -127,12 +131,19 @@ describe('@envolix/env-parser', () => {
   });
 
   it('treats only export followed by whitespace as an export prefix', () => {
-    const document = parseEnvDocument(['export FOO=bar', 'exportFOO=baz'].join('\n'));
+    const document = parseEnvDocument(
+      ['export FOO=bar', 'export\tTOKEN=value', 'exportFOO=baz'].join('\n'),
+    );
 
     expect(document.findEntry('FOO')).toMatchObject({
       key: 'FOO',
       value: 'bar',
       exportPrefix: 'export ',
+    });
+    expect(document.findEntry('TOKEN')).toMatchObject({
+      key: 'TOKEN',
+      value: 'value',
+      exportPrefix: 'export\t',
     });
     expect(document.findEntry('exportFOO')).toMatchObject({
       key: 'exportFOO',
@@ -162,5 +173,58 @@ describe('@envolix/env-parser', () => {
       },
     ]);
     expect(document.findEntry('SECRET')).toBeUndefined();
+  });
+
+  it('preserves unknown lines and whitespace-only separator lines in document order', () => {
+    const document = parseEnvDocument(
+      ['GOOD=value', 'not valid syntax', '\t  ', 'NEXT=value'].join('\n'),
+    );
+
+    expect(document.nodes).toEqual([
+      expect.objectContaining({
+        type: 'entry',
+        raw: 'GOOD=value',
+        lineRange: { start: 1, end: 1 },
+      }),
+      {
+        type: 'unknown',
+        raw: 'not valid syntax',
+        lineRange: { start: 2, end: 2 },
+      },
+      {
+        type: 'blank',
+        raw: '\t  ',
+        lineRange: { start: 3, end: 3 },
+      },
+      expect.objectContaining({
+        type: 'entry',
+        raw: 'NEXT=value',
+        lineRange: { start: 4, end: 4 },
+      }),
+    ]);
+  });
+
+  it('keeps hash characters inside values unless they begin an inline comment', () => {
+    const document = parseEnvDocument('URL=https://example.test/#fragment # guidance #varType:url');
+
+    expect(document.findEntry('URL')).toMatchObject({
+      value: 'https://example.test/#fragment',
+      rawValue: 'https://example.test/#fragment ',
+      inlineComment: {
+        raw: '# guidance #varType:url',
+        segments: [
+          { raw: '# guidance ', text: 'guidance' },
+          { raw: '#varType:url', text: 'varType:url' },
+        ],
+      },
+    });
+  });
+
+  it('reports no line ending style for empty documents', () => {
+    const document = parseEnvDocument('');
+
+    expect(document.nodes).toEqual([]);
+    expect(document.lineEnding).toBe('none');
+    expect(document.finalNewline).toBe(false);
   });
 });
