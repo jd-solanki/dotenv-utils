@@ -20,6 +20,9 @@ importers:
 
   packages/cli:
     dependencies:
+      '@envolix/env-parser':
+        specifier: workspace:*
+        version: link:../env-parser
       commander:
         specifier: ^15.0.0
         version: 15.0.0

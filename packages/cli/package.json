@@ -26,6 +26,7 @@
     "pack": "vp pack src/index.ts --clean --dts --format esm --sourcemap"
   },
   "dependencies": {
+    "@envolix/env-parser": "workspace:*",
     "commander": "^15.0.0",
     "picocolors": "^1.1.1"
   }
