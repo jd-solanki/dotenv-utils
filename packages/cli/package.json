@@ -1,6 +1,9 @@
 {
   "name": "@envolix/cli",
   "version": "0.0.0",
+  "bin": {
+    "envolix": "./dist/index.mjs"
+  },
   "files": [
     "dist"
   ],
@@ -8,6 +11,10 @@
   "sideEffects": false,
   "exports": {},
   "scripts": {
-    "pack": "vp pack"
+    "pack": "vp pack src/index.ts --clean --dts --format esm --sourcemap"
+  },
+  "dependencies": {
+    "commander": "^15.0.0",
+    "picocolors": "^1.1.1"
   }
 }

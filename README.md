@@ -5,7 +5,15 @@ Envolix helps teams derive shareable example env files from private env files wh
 ## Packages
 
 - `@envolix/env-parser`: parser and generation domain package. Later implementation slices will add the ordered env document AST, diagnostics, validation, and rendering.
-- `@envolix/cli`: binary package for the `envolix` command. Later implementation slices will add Commander wiring and filesystem behavior.
+- `@envolix/cli`: binary package for the `envolix` command. It currently exposes top-level Commander help; later implementation slices will add generation filesystem behavior.
+
+## CLI
+
+```bash
+envolix --help
+```
+
+The top-level help lists available commands and options. The `gen` command is reserved for the generation workflow that will be implemented in a later slice.
 
 ## Toolchain
 
