@@ -1,6 +1,15 @@
 {
   "name": "@envolix/cli",
   "version": "0.0.0",
+  "homepage": "https://github.com/jd-solanki/envolix#readme",
+  "bugs": {
+    "url": "https://github.com/jd-solanki/envolix/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jd-solanki/envolix.git",
+    "directory": "packages/cli"
+  },
   "bin": {
     "envolix": "./dist/index.mjs"
   },
@@ -10,6 +19,9 @@
   "type": "module",
   "sideEffects": false,
   "exports": {},
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "pack": "vp pack src/index.ts --clean --dts --format esm --sourcemap"
   },
