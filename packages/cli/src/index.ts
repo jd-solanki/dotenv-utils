@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 import { Command } from 'commander';
 import pc from 'picocolors';
+import packageJson from '../package.json' with { type: 'json' };
 
 const program = new Command('envolix')
   .description('Generate safe example env files from source env files.')
-  .version('0.0.0');
+  .version(packageJson.version);
 
 program
   .command('gen')

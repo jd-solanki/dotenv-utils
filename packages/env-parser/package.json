@@ -1,6 +1,15 @@
 {
   "name": "@envolix/env-parser",
   "version": "0.0.0",
+  "homepage": "https://github.com/jd-solanki/envolix#readme",
+  "bugs": {
+    "url": "https://github.com/jd-solanki/envolix/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jd-solanki/envolix.git",
+    "directory": "packages/env-parser"
+  },
   "files": [
     "dist"
   ],
@@ -11,6 +20,9 @@
       "types": "./dist/index.d.mts",
       "default": "./dist/index.mjs"
     }
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "scripts": {
     "pack": "vp pack"
