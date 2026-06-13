@@ -15,7 +15,7 @@ jobs:
         with:
           cache: true
           node-version: '24'
-      - run: vp install
+      - run: vp install --frozen-lockfile
+      - run: vp run -r pack
       - run: vp check
       - run: vp test
-      - run: vp run -r pack

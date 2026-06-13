@@ -99,14 +99,14 @@ jobs:
         env:
           PACKAGE_DIR: ${{ steps.package.outputs.dir }}
 
+      - name: Build packages
+        run: vp run -r pack
+
       - name: Run checks
         run: vp check
 
       - name: Run tests
         run: vp test
-
-      - name: Build packages
-        run: vp run -r pack
 
       - name: Generate changelog and publish
         shell: bash

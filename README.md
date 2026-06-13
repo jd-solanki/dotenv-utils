@@ -123,13 +123,15 @@ Common commands:
 
 ```bash
 vp install
+pnpm run ready
 vp check
 vp test
 vp run -r pack
-pnpm run ready
 ```
 
-The root `vite.config.ts` owns formatting, linting, tests, staged-file checks, cached workspace tasks, and package packing. CI runs `vp install`, `vp check`, `vp test`, and `vp run -r pack`.
+The root `vite.config.ts` owns formatting, linting, tests, staged-file checks, cached workspace tasks, and package packing. CI installs with a frozen lockfile, then runs `vp run -r pack`, `vp check`, and `vp test`. Package outputs are built before typechecking because workspace imports resolve through package export maps.
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for the full local setup flow.
 
 ## Releases
 
@@ -159,7 +161,7 @@ nr release:env-parser
 nr release:cli
 ```
 
-The publish workflow verifies that the selected package version is not already on npm, runs checks, tests, and package builds, generates changelog notes from the previous same-package tag, publishes only the selected package with npm trusted publishing, and creates a GitHub release.
+The publish workflow verifies that the selected package version is not already on npm, builds packages, runs checks and tests, generates changelog notes from the previous same-package tag, publishes only the selected package with npm trusted publishing, and creates a GitHub release.
 
 ## Layout
 
