@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vite-plus/test';
 
+import * as parserExports from '../src/index.js';
 import {
   EnvValidationError,
   assertEnvDocumentValidForGeneration,
@@ -138,9 +139,96 @@ describe('@envolix/env-parser', () => {
     });
   });
 
+  it('parses valid Node-compatible entry fixtures through the public API', () => {
+    const document = parseEnvDocument(
+      [
+        'EMPTY=',
+        'LOWER_CASE=value',
+        '_LEADING_UNDERSCORE=ok',
+        'NUMBER_2=two',
+        'SPACED = trimmed value   ',
+        "SINGLE='quoted value'",
+        'DOUBLE="quoted value"',
+        'URL=https://example.test/#fragment',
+      ].join('\n'),
+    );
+
+    expect(document.diagnostics).toEqual([]);
+    expect(
+      document.nodes.map((node) =>
+        node.type === 'entry'
+          ? {
+              key: node.key,
+              value: node.value,
+              rawValue: node.rawValue,
+              quoteStyle: node.quoteStyle,
+              lineRange: node.lineRange,
+            }
+          : node.type,
+      ),
+    ).toEqual([
+      {
+        key: 'EMPTY',
+        value: '',
+        rawValue: '',
+        quoteStyle: 'none',
+        lineRange: { start: 1, end: 1 },
+      },
+      {
+        key: 'LOWER_CASE',
+        value: 'value',
+        rawValue: 'value',
+        quoteStyle: 'none',
+        lineRange: { start: 2, end: 2 },
+      },
+      {
+        key: '_LEADING_UNDERSCORE',
+        value: 'ok',
+        rawValue: 'ok',
+        quoteStyle: 'none',
+        lineRange: { start: 3, end: 3 },
+      },
+      {
+        key: 'NUMBER_2',
+        value: 'two',
+        rawValue: 'two',
+        quoteStyle: 'none',
+        lineRange: { start: 4, end: 4 },
+      },
+      {
+        key: 'SPACED',
+        value: 'trimmed value',
+        rawValue: ' trimmed value   ',
+        quoteStyle: 'none',
+        lineRange: { start: 5, end: 5 },
+      },
+      {
+        key: 'SINGLE',
+        value: 'quoted value',
+        rawValue: "'quoted value'",
+        quoteStyle: 'single',
+        lineRange: { start: 6, end: 6 },
+      },
+      {
+        key: 'DOUBLE',
+        value: 'quoted value',
+        rawValue: '"quoted value"',
+        quoteStyle: 'double',
+        lineRange: { start: 7, end: 7 },
+      },
+      {
+        key: 'URL',
+        value: 'https://example.test/#fragment',
+        rawValue: 'https://example.test/#fragment',
+        quoteStyle: 'none',
+        lineRange: { start: 8, end: 8 },
+      },
+    ]);
+  });
+
   it('treats only export followed by whitespace as an export prefix', () => {
     const document = parseEnvDocument(
-      ['export FOO=bar', 'export\tTOKEN=value', 'exportFOO=baz'].join('\n'),
+      ['export FOO=bar', 'export\tTOKEN=value', 'exportFOO=baz', 'export FOO'].join('\n'),
     );
 
     expect(document.findEntry('FOO')).toMatchObject({
@@ -158,6 +246,11 @@ describe('@envolix/env-parser', () => {
       value: 'baz',
       exportPrefix: undefined,
     });
+    expect(document.nodes[3]).toMatchObject({
+      type: 'unknown',
+      raw: 'export FOO',
+      diagnostic: expect.objectContaining({ code: 'InvalidExport' }),
+    });
   });
 
   it('preserves duplicate entries and exposes duplicate-aware lookup helpers', () => {
@@ -166,6 +259,8 @@ describe('@envolix/env-parser', () => {
     expect(document.findEntry('A')?.value).toBe('one');
     expect(document.findEntries('A').map((entry) => entry.value)).toEqual(['one', 'three']);
     expect(document.keyIndex.A?.map((entry) => entry.lineRange.start)).toEqual([1, 3]);
+    expect(document.findEntry('MISSING')).toBeUndefined();
+    expect(document.findEntries('MISSING')).toEqual([]);
     expect(Object.isFrozen(document.keyIndex)).toBe(true);
     expect(Object.isFrozen(document.keyIndex.A)).toBe(true);
   });
@@ -193,6 +288,77 @@ describe('@envolix/env-parser', () => {
       }),
     ]);
     expect(document.findEntry('SECRET')).toBeUndefined();
+  });
+
+  it('reports each settled parse diagnostic fixture with stable codes', () => {
+    const fixtures = [
+      {
+        name: 'invalid key',
+        source: 'BAD-KEY=value',
+        code: 'InvalidKey',
+        raw: 'BAD-KEY=value',
+        lineRange: { start: 1, end: 1 },
+      },
+      {
+        name: 'unsupported quote',
+        source: 'SECRET=`not supported`',
+        code: 'UnsupportedQuote',
+        raw: 'SECRET=`not supported`',
+        lineRange: { start: 1, end: 1 },
+      },
+      {
+        name: 'unterminated quote',
+        source: ['CERT="-----BEGIN-----', 'body'].join('\n'),
+        code: 'UnterminatedQuote',
+        raw: 'CERT="-----BEGIN-----\nbody',
+        lineRange: { start: 1, end: 2 },
+      },
+      {
+        name: 'invalid export assignment',
+        source: 'export BAD-KEY=value',
+        code: 'InvalidExport',
+        raw: 'export BAD-KEY=value',
+        lineRange: { start: 1, end: 1 },
+      },
+      {
+        name: 'assignment-free export',
+        source: 'export FOO',
+        code: 'InvalidExport',
+        raw: 'export FOO',
+        lineRange: { start: 1, end: 1 },
+      },
+      {
+        name: 'unknown line',
+        source: 'not valid syntax',
+        code: 'UnknownLine',
+        raw: 'not valid syntax',
+        lineRange: { start: 1, end: 1 },
+      },
+    ] as const;
+
+    for (const fixture of fixtures) {
+      const document = parseEnvDocument(fixture.source);
+
+      expect(document.nodes, fixture.name).toEqual([
+        expect.objectContaining({
+          type: 'unknown',
+          raw: fixture.raw,
+          lineRange: fixture.lineRange,
+          diagnostic: expect.objectContaining({
+            phase: 'parse',
+            code: fixture.code,
+            lineRange: fixture.lineRange,
+          }),
+        }),
+      ]);
+      expect(document.diagnostics, fixture.name).toEqual([
+        expect.objectContaining({
+          phase: 'parse',
+          code: fixture.code,
+          lineRange: fixture.lineRange,
+        }),
+      ]);
+    }
   });
 
   it('preserves unknown lines and whitespace-only separator lines in document order', () => {
@@ -286,15 +452,19 @@ describe('@envolix/env-parser', () => {
   });
 
   it('returns all generation blockers at once and throws a typed validation error', () => {
-    const document = parseEnvDocument(['A=one\r', 'BAD-KEY=value', 'A=two'].join('\n'));
+    const document = parseEnvDocument(
+      ['A=one\r', 'BAD-KEY=value', 'not valid syntax', 'A=two'].join('\n'),
+    );
     const diagnostics = validateEnvDocumentForGeneration(document);
 
     expect(diagnostics.map((diagnostic) => diagnostic.code)).toEqual([
       'InvalidKey',
+      'UnknownLine',
       'MixedLineEndings',
       'DuplicateKey',
     ]);
     expect(diagnostics.map((diagnostic) => diagnostic.phase)).toEqual([
+      'parse',
       'parse',
       'generation',
       'generation',
@@ -307,6 +477,36 @@ describe('@envolix/env-parser', () => {
     } catch (error) {
       expect(error).toBeInstanceOf(EnvValidationError);
       expect((error as EnvValidationError).diagnostics).toEqual(diagnostics);
+    }
+  });
+
+  it('rejects duplicates, unknown lines, and mixed line endings during generation validation', () => {
+    const fixtures = [
+      {
+        name: 'duplicate keys',
+        source: ['DUPLICATE=one', 'OTHER=two', 'DUPLICATE=three'].join('\n'),
+        codes: ['DuplicateKey'],
+      },
+      {
+        name: 'unknown line',
+        source: ['GOOD=value', 'not valid syntax'].join('\n'),
+        codes: ['UnknownLine'],
+      },
+      {
+        name: 'mixed line endings',
+        source: 'LF=one\nCRLF=two\r\n',
+        codes: ['MixedLineEndings'],
+      },
+    ] as const;
+
+    for (const fixture of fixtures) {
+      const document = parseEnvDocument(fixture.source);
+
+      expect(
+        validateEnvDocumentForGeneration(document).map((diagnostic) => diagnostic.code),
+        fixture.name,
+      ).toEqual(fixture.codes);
+      expect(() => renderExampleEnvDocument(document), fixture.name).toThrow(EnvValidationError);
     }
   });
 
@@ -333,6 +533,79 @@ describe('@envolix/env-parser', () => {
     );
   });
 
+  it('renders fixture documents with generated target syntax normalization', () => {
+    const fixtures = [
+      {
+        name: 'lf without final newline',
+        source: [
+          '# heading #varType:secret',
+          'A = one',
+          'B=two # human text #varType:secret',
+          '   ',
+          'export TOKEN="secret"',
+          "PRIVATE_KEY='line one",
+          "line two'",
+        ].join('\n'),
+        expected: [
+          '# heading #varType:secret',
+          'A=',
+          'B= # human text #varType:secret',
+          '',
+          'export TOKEN=',
+          'PRIVATE_KEY=',
+        ].join('\n'),
+      },
+      {
+        name: 'lf with final newline',
+        source: ['A=one', 'B=two # guide', ''].join('\n'),
+        expected: ['A=', 'B= # guide', ''].join('\n'),
+      },
+      {
+        name: 'crlf with final newline',
+        source: 'A=one\r\nB=two # guide\r\n',
+        expected: 'A=\r\nB= # guide\r\n',
+      },
+    ] as const;
+
+    for (const fixture of fixtures) {
+      expect(renderExampleEnvDocument(parseEnvDocument(fixture.source)), fixture.name).toBe(
+        fixture.expected,
+      );
+    }
+  });
+
+  it('preserves source order, comments, annotations, and blank lines without a generated banner', () => {
+    const document = parseEnvDocument(
+      [
+        '  # database #varType:secret',
+        'DATABASE_URL=postgres://local # connection #owner:platform',
+        '',
+        'API_KEY=secret',
+        '# trailing section',
+      ].join('\n'),
+    );
+    const rendered = renderExampleEnvDocument(document);
+
+    expect(document.nodes.map((node) => (node.type === 'entry' ? node.key : node.type))).toEqual([
+      'comment',
+      'DATABASE_URL',
+      'blank',
+      'API_KEY',
+      'comment',
+    ]);
+    expect(rendered).toBe(
+      [
+        '  # database #varType:secret',
+        'DATABASE_URL= # connection #owner:platform',
+        '',
+        'API_KEY=',
+        '# trailing section',
+      ].join('\n'),
+    );
+    expect(rendered.startsWith('# Generated')).toBe(false);
+    expect(rendered.startsWith('# This file')).toBe(false);
+  });
+
   it('preserves CRLF line endings and final newline presence while rendering', () => {
     const document = parseEnvDocument('A=one\r\nB=two # guide\r\n');
 
@@ -343,5 +616,7 @@ describe('@envolix/env-parser', () => {
     const document = parseEnvDocument(['A=one', 'A=two'].join('\n'));
 
     expect(() => renderExampleEnvDocument(document)).toThrow(EnvValidationError);
+    expect(Object.keys(parserExports)).not.toContain('renderUnsafeExampleEnvDocument');
+    expect(Object.keys(parserExports)).not.toContain('unsafeRenderExampleEnvDocument');
   });
 });
